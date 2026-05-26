@@ -4,6 +4,7 @@ import './globals.css';
 import { CartProvider } from '@/components/CartProvider';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import PageWrapper from '@/components/PageWrapper';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -18,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.className} min-h-screen flex flex-col bg-gray-50`}>
         <CartProvider>
           <Navbar />
-          <main className="flex-1">{children}</main>
+          <PageWrapper>{children}</PageWrapper>
           <Footer />
         </CartProvider>
       </body>

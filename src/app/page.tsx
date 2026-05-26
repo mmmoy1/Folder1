@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getAllProducts } from '@/lib/db';
 import ProductCard from '@/components/ProductCard';
+import HeroSlider from '@/components/HeroSlider';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,77 +10,21 @@ export default function HomePage() {
 
   return (
     <div>
-      {/* Hero */}
-      <section className="relative bg-gradient-to-br from-brand-600 via-brand-700 to-brand-900 text-white overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-white rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-20 w-96 h-96 bg-brand-300 rounded-full blur-3xl" />
-        </div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
-          <div className="max-w-3xl">
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white/10 backdrop-blur-sm border border-white/20 mb-6">
-              Multi-Marketplace Pipeline
-            </span>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-              Sell Everywhere,<br />
-              <span className="text-brand-200">Manage Once</span>
-            </h1>
-            <p className="text-lg sm:text-xl text-brand-100 mb-8 max-w-2xl">
-              Upload your product images and details, then publish to eBay, Amazon, Etsy, and Shopify
-              with a single click. Your integrated storefront showcases everything in one place.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link
-                href="/admin/products/new"
-                className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-white text-brand-700 font-semibold hover:bg-brand-50 transition-colors shadow-lg shadow-brand-900/20"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Add Your First Product
-              </Link>
-              <Link
-                href="/products"
-                className="inline-flex items-center justify-center px-6 py-3 rounded-xl border border-white/30 text-white font-semibold hover:bg-white/10 transition-colors"
-              >
-                Browse Store
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Marketplace Logos */}
-      <section className="py-12 bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-gray-500 uppercase tracking-wider mb-8">Publish to all major marketplaces</p>
-          <div className="flex flex-wrap justify-center gap-8 sm:gap-16 items-center">
-            {[
-              { name: 'eBay', color: '#E53238' },
-              { name: 'Amazon', color: '#FF9900' },
-              { name: 'Etsy', color: '#F1641E' },
-              { name: 'Shopify', color: '#96BF48' },
-            ].map(mp => (
-              <div key={mp.name} className="flex items-center gap-2 text-gray-400 hover:text-gray-600 transition-colors">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: mp.color }} />
-                <span className="text-lg font-semibold">{mp.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Full-screen Hero Slider with background video */}
+      <HeroSlider />
 
       {/* How it works */}
-      <section className="py-20">
+      <section id="how-it-works" className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">How It Works</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">Three simple steps to get your products listed across all major marketplaces</p>
+            <span className="text-sm font-semibold text-brand-600 uppercase tracking-wider">Simple Workflow</span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-3 mb-4">How It Works</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto text-lg">Three simple steps to get your products listed across all major marketplaces</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                step: '1',
+                step: '01',
                 title: 'Upload Products',
                 description: 'Add your product images, descriptions, pricing, and inventory through our admin dashboard.',
                 icon: (
@@ -87,7 +32,7 @@ export default function HomePage() {
                 ),
               },
               {
-                step: '2',
+                step: '02',
                 title: 'Select Marketplaces',
                 description: 'Choose which marketplaces to publish to: eBay, Amazon, Etsy, Shopify, or all of them at once.',
                 icon: (
@@ -95,7 +40,7 @@ export default function HomePage() {
                 ),
               },
               {
-                step: '3',
+                step: '03',
                 title: 'Publish & Sell',
                 description: 'Hit publish and our pipeline syncs your listings. Track status in real-time from the dashboard.',
                 icon: (
@@ -103,15 +48,34 @@ export default function HomePage() {
                 ),
               },
             ].map(item => (
-              <div key={item.step} className="relative bg-white rounded-2xl p-8 border border-gray-100 hover:shadow-lg transition-shadow">
-                <div className="w-12 h-12 bg-brand-50 rounded-xl flex items-center justify-center mb-6">
-                  <svg className="w-6 h-6 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div key={item.step} className="relative group bg-white rounded-2xl p-8 border border-gray-100 hover:shadow-xl hover:border-brand-100 transition-all duration-300">
+                <div className="w-14 h-14 bg-brand-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-brand-100 transition-colors">
+                  <svg className="w-7 h-7 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     {item.icon}
                   </svg>
                 </div>
-                <div className="absolute top-6 right-6 text-4xl font-bold text-gray-100">{item.step}</div>
+                <div className="absolute top-6 right-6 text-5xl font-bold text-gray-100 group-hover:text-brand-50 transition-colors">{item.step}</div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-3">{item.title}</h3>
-                <p className="text-gray-600">{item.description}</p>
+                <p className="text-gray-600 leading-relaxed">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Stats strip */}
+      <section className="bg-gradient-to-r from-brand-700 to-brand-900 py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
+            {[
+              { value: '4', label: 'Marketplaces' },
+              { value: '1', label: 'Dashboard' },
+              { value: '∞', label: 'Products' },
+              { value: '0', label: 'Hassle' },
+            ].map(stat => (
+              <div key={stat.label}>
+                <div className="text-4xl sm:text-5xl font-bold text-white mb-2">{stat.value}</div>
+                <div className="text-brand-200 text-sm font-medium uppercase tracking-wider">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -120,14 +84,15 @@ export default function HomePage() {
 
       {/* Featured Products */}
       {products.length > 0 && (
-        <section className="py-20 bg-white">
+        <section className="py-24">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-10">
+            <div className="flex items-end justify-between mb-12">
               <div>
-                <h2 className="text-3xl font-bold text-gray-900">Featured Products</h2>
-                <p className="text-gray-600 mt-2">Shop our latest listings</p>
+                <span className="text-sm font-semibold text-brand-600 uppercase tracking-wider">Shop</span>
+                <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-3">Featured Products</h2>
+                <p className="text-gray-600 mt-2 text-lg">Browse our latest listings from the storefront</p>
               </div>
-              <Link href="/products" className="text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1">
+              <Link href="/products" className="hidden sm:inline-flex items-center gap-1 text-brand-600 hover:text-brand-700 font-semibold transition-colors">
                 View all
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -139,26 +104,46 @@ export default function HomePage() {
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
+            <div className="sm:hidden text-center mt-8">
+              <Link href="/products" className="inline-flex items-center gap-1 text-brand-600 hover:text-brand-700 font-semibold">
+                View all products
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
           </div>
         </section>
       )}
 
       {/* CTA */}
-      <section className="py-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Ready to Start Selling?</h2>
-          <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
+      <section className="relative py-32 overflow-hidden">
+        <div className="absolute inset-0 bg-gray-900">
+          <div className="absolute inset-0 bg-gradient-to-br from-brand-900/90 to-gray-900" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-brand-500/5 blur-3xl" />
+        </div>
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl sm:text-5xl font-bold text-white mb-6">Ready to Start Selling?</h2>
+          <p className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
             Add your products and start publishing to all major marketplaces in minutes.
           </p>
-          <Link
-            href="/admin"
-            className="inline-flex items-center px-8 py-4 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700 transition-colors shadow-lg shadow-brand-600/20"
-          >
-            Open Dashboard
-            <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/admin"
+              className="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-white text-brand-700 font-semibold hover:bg-brand-50 transition-all shadow-2xl shadow-black/20 hover:scale-[1.02]"
+            >
+              Open Dashboard
+              <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </Link>
+            <Link
+              href="/admin/products/new"
+              className="inline-flex items-center justify-center px-8 py-4 rounded-xl border border-white/20 text-white font-semibold hover:bg-white/10 transition-all"
+            >
+              Add Product
+            </Link>
+          </div>
         </div>
       </section>
     </div>

@@ -2,30 +2,62 @@
 
 import Link from 'next/link';
 import { useCart } from './CartProvider';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 export default function Navbar() {
   const { totalItems } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
+
+  const isHome = pathname === '/';
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const transparent = isHome && !scrolled && !mobileOpen;
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        transparent
+          ? 'bg-transparent border-b border-transparent'
+          : 'bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm'
+      }`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${transparent ? 'bg-white/15 backdrop-blur-sm' : 'bg-brand-600'}`}>
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <span className="text-xl font-bold text-gray-900">MarketFlow</span>
+              <span className={`text-xl font-bold transition-colors ${transparent ? 'text-white' : 'text-gray-900'}`}>
+                MarketFlow
+              </span>
             </Link>
             <div className="hidden sm:ml-8 sm:flex sm:space-x-6">
-              <Link href="/" className="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium transition-colors">
+              <Link
+                href="/"
+                className={`px-3 py-2 text-sm font-medium transition-colors ${
+                  transparent ? 'text-white/80 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
                 Home
               </Link>
-              <Link href="/products" className="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium transition-colors">
+              <Link
+                href="/products"
+                className={`px-3 py-2 text-sm font-medium transition-colors ${
+                  transparent ? 'text-white/80 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
                 Shop
               </Link>
             </div>
@@ -33,7 +65,11 @@ export default function Navbar() {
           <div className="flex items-center space-x-4">
             <Link
               href="/admin"
-              className="hidden sm:inline-flex items-center px-3 py-1.5 text-sm font-medium text-brand-700 bg-brand-50 rounded-lg hover:bg-brand-100 transition-colors"
+              className={`hidden sm:inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                transparent
+                  ? 'text-white bg-white/15 hover:bg-white/25 backdrop-blur-sm'
+                  : 'text-brand-700 bg-brand-50 hover:bg-brand-100'
+              }`}
             >
               <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -41,7 +77,12 @@ export default function Navbar() {
               </svg>
               Admin
             </Link>
-            <Link href="/cart" className="relative p-2 text-gray-600 hover:text-gray-900 transition-colors">
+            <Link
+              href="/cart"
+              className={`relative p-2 transition-colors ${
+                transparent ? 'text-white/80 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
@@ -52,7 +93,7 @@ export default function Navbar() {
               )}
             </Link>
             <button
-              className="sm:hidden p-2 text-gray-600"
+              className={`sm:hidden p-2 transition-colors ${transparent ? 'text-white/80' : 'text-gray-600'}`}
               onClick={() => setMobileOpen(!mobileOpen)}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

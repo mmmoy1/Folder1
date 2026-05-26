@@ -6,6 +6,10 @@
   body {
     @apply antialiased text-gray-900;
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 @layer utilities {
@@ -21,4 +25,13 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+}
+
+@keyframes slider-progress {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+.animate-slider-progress {
+  animation: slider-progress 7s linear forwards;
 }
