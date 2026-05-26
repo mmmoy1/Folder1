@@ -1,57 +1,33 @@
-import Database from 'better-sqlite3';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 import { randomUUID } from 'crypto';
-import { mkdirSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { readFileSync, existsSync } from 'fs';
+import { resolve } from 'path';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const dbPath = join(__dirname, '..', 'data', 'store.db');
+// Initialize Firebase Admin
+let credential;
+if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
+  const json = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, 'base64').toString();
+  credential = cert(JSON.parse(json));
+} else if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+  const keyPath = resolve(process.cwd(), process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+  if (existsSync(keyPath)) {
+    credential = cert(JSON.parse(readFileSync(keyPath, 'utf-8')));
+  }
+} else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  credential = cert(JSON.parse(readFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS, 'utf-8')));
+}
 
-mkdirSync(join(__dirname, '..', 'data'), { recursive: true });
+const appConfig = credential ? { credential } : { projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID };
 
-const db = new Database(dbPath);
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+if (!credential && !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
+  console.error('Error: No Firebase credentials found.');
+  console.error('Set FIREBASE_SERVICE_ACCOUNT_KEY, FIREBASE_SERVICE_ACCOUNT_BASE64, or NEXT_PUBLIC_FIREBASE_PROJECT_ID');
+  process.exit(1);
+}
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS products (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT DEFAULT '',
-    price REAL NOT NULL,
-    compare_at_price REAL,
-    sku TEXT NOT NULL UNIQUE,
-    category TEXT DEFAULT '',
-    tags TEXT DEFAULT '[]',
-    images TEXT DEFAULT '[]',
-    inventory INTEGER DEFAULT 0,
-    status TEXT DEFAULT 'draft',
-    created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
-  );
-  CREATE TABLE IF NOT EXISTS marketplace_listings (
-    id TEXT PRIMARY KEY,
-    product_id TEXT NOT NULL,
-    marketplace TEXT NOT NULL,
-    external_id TEXT,
-    status TEXT DEFAULT 'pending',
-    last_synced_at TEXT,
-    error TEXT,
-    url TEXT,
-    created_at TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
-  );
-  CREATE TABLE IF NOT EXISTS pipeline_jobs (
-    id TEXT PRIMARY KEY,
-    product_id TEXT NOT NULL,
-    marketplaces TEXT NOT NULL,
-    status TEXT DEFAULT 'queued',
-    results TEXT DEFAULT '[]',
-    created_at TEXT DEFAULT (datetime('now')),
-    completed_at TEXT,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
-  );
-`);
+const app = initializeApp(appConfig);
+const db = getFirestore(app);
 
 const sampleProducts = [
   {
@@ -78,6 +54,7 @@ const sampleProducts = [
     name: 'Organic Cotton T-Shirt',
     description: 'Super soft organic cotton t-shirt made from 100% GOTS-certified organic cotton. Pre-shrunk, breathable, and ethically manufactured. Available in multiple colors.',
     price: 29.99,
+    compareAtPrice: null,
     sku: 'OC-TEE100',
     category: 'Clothing',
     tags: ['organic', 'cotton', 't-shirt', 'sustainable', 'clothing'],
@@ -97,6 +74,7 @@ const sampleProducts = [
     name: 'Handmade Ceramic Mug Set',
     description: 'Set of 4 handcrafted ceramic mugs with unique glazed finishes. Microwave and dishwasher safe. Each mug holds 12oz and features a comfortable ergonomic handle.',
     price: 44.99,
+    compareAtPrice: null,
     sku: 'HM-MUG4',
     category: 'Home',
     tags: ['ceramic', 'mug', 'handmade', 'kitchen', 'home decor'],
@@ -106,6 +84,7 @@ const sampleProducts = [
     name: 'Yoga Mat Pro',
     description: 'Extra-thick 6mm non-slip yoga mat made from eco-friendly TPE material. Excellent cushioning for joints, lightweight and portable. Comes with carrying strap.',
     price: 39.99,
+    compareAtPrice: null,
     sku: 'YM-PRO6',
     category: 'Sports',
     tags: ['yoga', 'fitness', 'mat', 'exercise', 'eco-friendly'],
@@ -125,6 +104,7 @@ const sampleProducts = [
     name: 'Artisan Scented Candle Collection',
     description: 'Collection of 3 hand-poured soy wax candles in amber glass jars. Scents include Lavender Fields, Vanilla Bean, and Cedar Wood. Each candle burns for 50+ hours.',
     price: 34.99,
+    compareAtPrice: null,
     sku: 'AC-SOY3',
     category: 'Home',
     tags: ['candle', 'soy wax', 'home fragrance', 'artisan', 'gift'],
@@ -132,20 +112,35 @@ const sampleProducts = [
   },
 ];
 
-const insert = db.prepare(`
-  INSERT OR IGNORE INTO products (id, name, description, price, compare_at_price, sku, category, tags, images, inventory, status, created_at, updated_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))
-`);
+async function seed() {
+  const batch = db.batch();
+  const now = new Date();
 
-for (const p of sampleProducts) {
-  const id = randomUUID();
-  const imgUrl = `https://placehold.co/600x600/f0f7ff/0074c5?text=${encodeURIComponent(p.name.split(' ').slice(0, 2).join('\\n'))}`;
-  insert.run(
-    id, p.name, p.description, p.price, p.compareAtPrice || null,
-    p.sku, p.category, JSON.stringify(p.tags), JSON.stringify([imgUrl]),
-    p.inventory
-  );
+  for (const p of sampleProducts) {
+    const id = randomUUID();
+    const imgUrl = `https://placehold.co/600x600/f0f7ff/0074c5?text=${encodeURIComponent(p.name.split(' ').slice(0, 2).join('\\n'))}`;
+
+    const ref = db.collection('products').doc(id);
+    batch.set(ref, {
+      name: p.name,
+      description: p.description,
+      price: p.price,
+      compareAtPrice: p.compareAtPrice,
+      sku: p.sku,
+      category: p.category,
+      tags: p.tags,
+      images: [imgUrl],
+      inventory: p.inventory,
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  await batch.commit();
+  console.log(`Seeded ${sampleProducts.length} sample products to Firestore`);
 }
 
-console.log(`Database initialized with ${sampleProducts.length} sample products at ${dbPath}`);
-db.close();
+seed()
+  .then(() => process.exit(0))
+  .catch(err => { console.error('Seed failed:', err); process.exit(1); });

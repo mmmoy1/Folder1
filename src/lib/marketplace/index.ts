@@ -49,7 +49,7 @@ export async function runPipeline(
   marketplaces: MarketplaceType[]
 ): Promise<PipelineJob> {
   const jobId = uuid();
-  const job = db.createPipelineJob({
+  await db.createPipelineJob({
     id: jobId,
     productId: product.id,
     marketplaces,
@@ -72,7 +72,7 @@ export async function runPipeline(
 
     try {
       const listingId = uuid();
-      db.createListing({
+      await db.createListing({
         id: listingId,
         productId: product.id,
         marketplace,
@@ -82,7 +82,7 @@ export async function runPipeline(
       const result = await publisher(product);
       results.push(result);
 
-      db.updateListing(listingId, {
+      await db.updateListing(listingId, {
         status: result.status === 'success' ? 'active' : 'failed',
         externalId: result.externalId,
         url: result.url,
@@ -98,16 +98,15 @@ export async function runPipeline(
     }
   }
 
-  const allSuccess = results.every(r => r.status === 'success');
   const allFailed = results.every(r => r.status === 'failed');
 
-  db.updatePipelineJob(jobId, {
+  await db.updatePipelineJob(jobId, {
     status: allFailed ? 'failed' : 'completed',
     results,
     completedAt: new Date().toISOString(),
   });
 
-  return db.getPipelineJobById(jobId)!;
+  return (await db.getPipelineJobById(jobId))!;
 }
 
 export function getMarketplaceConfig(type: MarketplaceType): MarketplaceConfig | undefined {

@@ -1,253 +1,230 @@
-import Database from 'better-sqlite3';
-import path from 'path';
+import { adminDb } from './firebase-admin';
 import { Product, MarketplaceListing, PipelineJob, PipelineResult } from './types';
 
-const DB_PATH = path.join(process.cwd(), 'data', 'store.db');
+const PRODUCTS = 'products';
+const LISTINGS = 'marketplace_listings';
+const JOBS = 'pipeline_jobs';
 
-let db: Database.Database | null = null;
-
-function getDb(): Database.Database {
-  if (!db) {
-    db = new Database(DB_PATH);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    initTables(db);
-  }
-  return db;
-}
-
-function initTables(database: Database.Database) {
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS products (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      description TEXT DEFAULT '',
-      price REAL NOT NULL,
-      compare_at_price REAL,
-      sku TEXT NOT NULL UNIQUE,
-      category TEXT DEFAULT '',
-      tags TEXT DEFAULT '[]',
-      images TEXT DEFAULT '[]',
-      inventory INTEGER DEFAULT 0,
-      status TEXT DEFAULT 'draft',
-      created_at TEXT DEFAULT (datetime('now')),
-      updated_at TEXT DEFAULT (datetime('now'))
-    );
-
-    CREATE TABLE IF NOT EXISTS marketplace_listings (
-      id TEXT PRIMARY KEY,
-      product_id TEXT NOT NULL,
-      marketplace TEXT NOT NULL,
-      external_id TEXT,
-      status TEXT DEFAULT 'pending',
-      last_synced_at TEXT,
-      error TEXT,
-      url TEXT,
-      created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS pipeline_jobs (
-      id TEXT PRIMARY KEY,
-      product_id TEXT NOT NULL,
-      marketplaces TEXT NOT NULL,
-      status TEXT DEFAULT 'queued',
-      results TEXT DEFAULT '[]',
-      created_at TEXT DEFAULT (datetime('now')),
-      completed_at TEXT,
-      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
-    );
-  `);
-}
-
-function rowToProduct(row: any): Product {
+function docToProduct(doc: FirebaseFirestore.DocumentSnapshot): Product {
+  const d = doc.data()!;
   return {
-    id: row.id,
-    name: row.name,
-    description: row.description,
-    price: row.price,
-    compareAtPrice: row.compare_at_price,
-    sku: row.sku,
-    category: row.category,
-    tags: JSON.parse(row.tags || '[]'),
-    images: JSON.parse(row.images || '[]'),
-    inventory: row.inventory,
-    status: row.status,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    id: doc.id,
+    name: d.name,
+    description: d.description || '',
+    price: d.price,
+    compareAtPrice: d.compareAtPrice || undefined,
+    sku: d.sku,
+    category: d.category || '',
+    tags: d.tags || [],
+    images: d.images || [],
+    inventory: d.inventory || 0,
+    status: d.status || 'draft',
+    createdAt: d.createdAt?.toDate?.()?.toISOString?.() || d.createdAt || '',
+    updatedAt: d.updatedAt?.toDate?.()?.toISOString?.() || d.updatedAt || '',
   };
 }
 
-function rowToListing(row: any): MarketplaceListing {
+function docToListing(doc: FirebaseFirestore.DocumentSnapshot): MarketplaceListing {
+  const d = doc.data()!;
   return {
-    id: row.id,
-    productId: row.product_id,
-    marketplace: row.marketplace,
-    externalId: row.external_id,
-    status: row.status,
-    lastSyncedAt: row.last_synced_at,
-    error: row.error,
-    url: row.url,
-    createdAt: row.created_at,
+    id: doc.id,
+    productId: d.productId,
+    marketplace: d.marketplace,
+    externalId: d.externalId || undefined,
+    status: d.status || 'pending',
+    lastSyncedAt: d.lastSyncedAt?.toDate?.()?.toISOString?.() || d.lastSyncedAt || undefined,
+    error: d.error || undefined,
+    url: d.url || undefined,
+    createdAt: d.createdAt?.toDate?.()?.toISOString?.() || d.createdAt || '',
   };
 }
 
-function rowToJob(row: any): PipelineJob {
+function docToJob(doc: FirebaseFirestore.DocumentSnapshot): PipelineJob {
+  const d = doc.data()!;
   return {
-    id: row.id,
-    productId: row.product_id,
-    marketplaces: JSON.parse(row.marketplaces || '[]'),
-    status: row.status,
-    results: JSON.parse(row.results || '[]'),
-    createdAt: row.created_at,
-    completedAt: row.completed_at,
+    id: doc.id,
+    productId: d.productId,
+    marketplaces: d.marketplaces || [],
+    status: d.status || 'queued',
+    results: d.results || [],
+    createdAt: d.createdAt?.toDate?.()?.toISOString?.() || d.createdAt || '',
+    completedAt: d.completedAt?.toDate?.()?.toISOString?.() || d.completedAt || undefined,
   };
 }
 
 // Product CRUD
-export function getAllProducts(status?: string): Product[] {
-  const database = getDb();
-  let rows;
+
+export async function getAllProducts(status?: string): Promise<Product[]> {
+  let query: FirebaseFirestore.Query = adminDb.collection(PRODUCTS).orderBy('createdAt', 'desc');
   if (status) {
-    rows = database.prepare('SELECT * FROM products WHERE status = ? ORDER BY created_at DESC').all(status);
-  } else {
-    rows = database.prepare('SELECT * FROM products ORDER BY created_at DESC').all();
+    query = query.where('status', '==', status);
   }
-  return rows.map(rowToProduct);
+  const snap = await query.get();
+  return snap.docs.map(docToProduct);
 }
 
-export function getProductById(id: string): Product | null {
-  const database = getDb();
-  const row = database.prepare('SELECT * FROM products WHERE id = ?').get(id);
-  return row ? rowToProduct(row) : null;
+export async function getProductById(id: string): Promise<Product | null> {
+  const doc = await adminDb.collection(PRODUCTS).doc(id).get();
+  if (!doc.exists) return null;
+  return docToProduct(doc);
 }
 
-export function createProduct(product: Omit<Product, 'createdAt' | 'updatedAt'>): Product {
-  const database = getDb();
-  const now = new Date().toISOString();
-  database.prepare(`
-    INSERT INTO products (id, name, description, price, compare_at_price, sku, category, tags, images, inventory, status, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    product.id, product.name, product.description, product.price,
-    product.compareAtPrice || null, product.sku, product.category,
-    JSON.stringify(product.tags), JSON.stringify(product.images),
-    product.inventory, product.status, now, now
-  );
-  return getProductById(product.id)!;
+export async function createProduct(product: Omit<Product, 'createdAt' | 'updatedAt'>): Promise<Product> {
+  const now = new Date();
+  const ref = adminDb.collection(PRODUCTS).doc(product.id);
+  await ref.set({
+    name: product.name,
+    description: product.description,
+    price: product.price,
+    compareAtPrice: product.compareAtPrice || null,
+    sku: product.sku,
+    category: product.category,
+    tags: product.tags,
+    images: product.images,
+    inventory: product.inventory,
+    status: product.status,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return (await getProductById(product.id))!;
 }
 
-export function updateProduct(id: string, updates: Partial<Product>): Product | null {
-  const database = getDb();
-  const existing = getProductById(id);
+export async function updateProduct(id: string, updates: Partial<Product>): Promise<Product | null> {
+  const existing = await getProductById(id);
   if (!existing) return null;
 
-  const merged = { ...existing, ...updates };
-  database.prepare(`
-    UPDATE products SET name=?, description=?, price=?, compare_at_price=?, sku=?, category=?,
-    tags=?, images=?, inventory=?, status=?, updated_at=datetime('now')
-    WHERE id=?
-  `).run(
-    merged.name, merged.description, merged.price, merged.compareAtPrice || null,
-    merged.sku, merged.category, JSON.stringify(merged.tags),
-    JSON.stringify(merged.images), merged.inventory, merged.status, id
-  );
+  const data: Record<string, any> = { updatedAt: new Date() };
+  if (updates.name !== undefined) data.name = updates.name;
+  if (updates.description !== undefined) data.description = updates.description;
+  if (updates.price !== undefined) data.price = updates.price;
+  if (updates.compareAtPrice !== undefined) data.compareAtPrice = updates.compareAtPrice;
+  if (updates.sku !== undefined) data.sku = updates.sku;
+  if (updates.category !== undefined) data.category = updates.category;
+  if (updates.tags !== undefined) data.tags = updates.tags;
+  if (updates.images !== undefined) data.images = updates.images;
+  if (updates.inventory !== undefined) data.inventory = updates.inventory;
+  if (updates.status !== undefined) data.status = updates.status;
+
+  await adminDb.collection(PRODUCTS).doc(id).update(data);
   return getProductById(id);
 }
 
-export function deleteProduct(id: string): boolean {
-  const database = getDb();
-  const result = database.prepare('DELETE FROM products WHERE id = ?').run(id);
-  return result.changes > 0;
+export async function deleteProduct(id: string): Promise<boolean> {
+  const doc = await adminDb.collection(PRODUCTS).doc(id).get();
+  if (!doc.exists) return false;
+
+  const batch = adminDb.batch();
+  batch.delete(adminDb.collection(PRODUCTS).doc(id));
+
+  const listings = await adminDb.collection(LISTINGS).where('productId', '==', id).get();
+  listings.docs.forEach(d => batch.delete(d.ref));
+  const jobs = await adminDb.collection(JOBS).where('productId', '==', id).get();
+  jobs.docs.forEach(d => batch.delete(d.ref));
+
+  await batch.commit();
+  return true;
 }
 
 // Marketplace Listings
-export function getListingsForProduct(productId: string): MarketplaceListing[] {
-  const database = getDb();
-  const rows = database.prepare('SELECT * FROM marketplace_listings WHERE product_id = ? ORDER BY created_at DESC').all(productId);
-  return rows.map(rowToListing);
+
+export async function getListingsForProduct(productId: string): Promise<MarketplaceListing[]> {
+  const snap = await adminDb.collection(LISTINGS)
+    .where('productId', '==', productId)
+    .orderBy('createdAt', 'desc')
+    .get();
+  return snap.docs.map(docToListing);
 }
 
-export function getAllListings(): MarketplaceListing[] {
-  const database = getDb();
-  const rows = database.prepare('SELECT * FROM marketplace_listings ORDER BY created_at DESC').all();
-  return rows.map(rowToListing);
+export async function getAllListings(): Promise<MarketplaceListing[]> {
+  const snap = await adminDb.collection(LISTINGS).orderBy('createdAt', 'desc').get();
+  return snap.docs.map(docToListing);
 }
 
-export function createListing(listing: Omit<MarketplaceListing, 'createdAt'>): MarketplaceListing {
-  const database = getDb();
-  database.prepare(`
-    INSERT INTO marketplace_listings (id, product_id, marketplace, external_id, status, last_synced_at, error, url, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-  `).run(listing.id, listing.productId, listing.marketplace, listing.externalId || null,
-    listing.status, listing.lastSyncedAt || null, listing.error || null, listing.url || null);
-  return getListingById(listing.id)!;
+export async function createListing(listing: Omit<MarketplaceListing, 'createdAt'>): Promise<MarketplaceListing> {
+  const ref = adminDb.collection(LISTINGS).doc(listing.id);
+  await ref.set({
+    productId: listing.productId,
+    marketplace: listing.marketplace,
+    externalId: listing.externalId || null,
+    status: listing.status,
+    lastSyncedAt: listing.lastSyncedAt || null,
+    error: listing.error || null,
+    url: listing.url || null,
+    createdAt: new Date(),
+  });
+  return (await getListingById(listing.id))!;
 }
 
-export function getListingById(id: string): MarketplaceListing | null {
-  const database = getDb();
-  const row = database.prepare('SELECT * FROM marketplace_listings WHERE id = ?').get(id);
-  return row ? rowToListing(row) : null;
+export async function getListingById(id: string): Promise<MarketplaceListing | null> {
+  const doc = await adminDb.collection(LISTINGS).doc(id).get();
+  if (!doc.exists) return null;
+  return docToListing(doc);
 }
 
-export function updateListing(id: string, updates: Partial<MarketplaceListing>): void {
-  const database = getDb();
-  const fields: string[] = [];
-  const values: any[] = [];
+export async function updateListing(id: string, updates: Partial<MarketplaceListing>): Promise<void> {
+  const data: Record<string, any> = {};
+  if (updates.status !== undefined) data.status = updates.status;
+  if (updates.externalId !== undefined) data.externalId = updates.externalId;
+  if (updates.lastSyncedAt !== undefined) data.lastSyncedAt = updates.lastSyncedAt;
+  if (updates.error !== undefined) data.error = updates.error;
+  if (updates.url !== undefined) data.url = updates.url;
 
-  if (updates.status !== undefined) { fields.push('status=?'); values.push(updates.status); }
-  if (updates.externalId !== undefined) { fields.push('external_id=?'); values.push(updates.externalId); }
-  if (updates.lastSyncedAt !== undefined) { fields.push('last_synced_at=?'); values.push(updates.lastSyncedAt); }
-  if (updates.error !== undefined) { fields.push('error=?'); values.push(updates.error); }
-  if (updates.url !== undefined) { fields.push('url=?'); values.push(updates.url); }
-
-  if (fields.length > 0) {
-    values.push(id);
-    database.prepare(`UPDATE marketplace_listings SET ${fields.join(', ')} WHERE id=?`).run(...values);
+  if (Object.keys(data).length > 0) {
+    await adminDb.collection(LISTINGS).doc(id).update(data);
   }
 }
 
 // Pipeline Jobs
-export function createPipelineJob(job: Omit<PipelineJob, 'createdAt' | 'completedAt'>): PipelineJob {
-  const database = getDb();
-  database.prepare(`
-    INSERT INTO pipeline_jobs (id, product_id, marketplaces, status, results, created_at)
-    VALUES (?, ?, ?, ?, ?, datetime('now'))
-  `).run(job.id, job.productId, JSON.stringify(job.marketplaces), job.status, JSON.stringify(job.results));
-  return getPipelineJobById(job.id)!;
+
+export async function createPipelineJob(job: Omit<PipelineJob, 'createdAt' | 'completedAt'>): Promise<PipelineJob> {
+  const ref = adminDb.collection(JOBS).doc(job.id);
+  await ref.set({
+    productId: job.productId,
+    marketplaces: job.marketplaces,
+    status: job.status,
+    results: job.results,
+    createdAt: new Date(),
+    completedAt: null,
+  });
+  return (await getPipelineJobById(job.id))!;
 }
 
-export function getPipelineJobById(id: string): PipelineJob | null {
-  const database = getDb();
-  const row = database.prepare('SELECT * FROM pipeline_jobs WHERE id = ?').get(id);
-  return row ? rowToJob(row) : null;
+export async function getPipelineJobById(id: string): Promise<PipelineJob | null> {
+  const doc = await adminDb.collection(JOBS).doc(id).get();
+  if (!doc.exists) return null;
+  return docToJob(doc);
 }
 
-export function getAllPipelineJobs(): PipelineJob[] {
-  const database = getDb();
-  const rows = database.prepare('SELECT * FROM pipeline_jobs ORDER BY created_at DESC').all();
-  return rows.map(rowToJob);
+export async function getAllPipelineJobs(): Promise<PipelineJob[]> {
+  const snap = await adminDb.collection(JOBS).orderBy('createdAt', 'desc').get();
+  return snap.docs.map(docToJob);
 }
 
-export function updatePipelineJob(id: string, updates: { status?: string; results?: PipelineResult[]; completedAt?: string }): void {
-  const database = getDb();
-  const fields: string[] = [];
-  const values: any[] = [];
+export async function updatePipelineJob(
+  id: string,
+  updates: { status?: string; results?: PipelineResult[]; completedAt?: string }
+): Promise<void> {
+  const data: Record<string, any> = {};
+  if (updates.status) data.status = updates.status;
+  if (updates.results) data.results = updates.results;
+  if (updates.completedAt) data.completedAt = new Date(updates.completedAt);
 
-  if (updates.status) { fields.push('status=?'); values.push(updates.status); }
-  if (updates.results) { fields.push('results=?'); values.push(JSON.stringify(updates.results)); }
-  if (updates.completedAt) { fields.push('completed_at=?'); values.push(updates.completedAt); }
-
-  if (fields.length > 0) {
-    values.push(id);
-    database.prepare(`UPDATE pipeline_jobs SET ${fields.join(', ')} WHERE id=?`).run(...values);
+  if (Object.keys(data).length > 0) {
+    await adminDb.collection(JOBS).doc(id).update(data);
   }
 }
 
-export function getDashboardStats() {
-  const database = getDb();
-  const totalProducts = (database.prepare('SELECT COUNT(*) as count FROM products').get() as any).count;
-  const activeListings = (database.prepare("SELECT COUNT(*) as count FROM marketplace_listings WHERE status = 'active'").get() as any).count;
-  const pendingJobs = (database.prepare("SELECT COUNT(*) as count FROM pipeline_jobs WHERE status IN ('queued', 'processing')").get() as any).count;
-  return { totalProducts, activeListings, totalMarketplaces: 4, pendingJobs };
+export async function getDashboardStats() {
+  const [productsSnap, listingsSnap, jobsSnap] = await Promise.all([
+    adminDb.collection(PRODUCTS).count().get(),
+    adminDb.collection(LISTINGS).where('status', '==', 'active').count().get(),
+    adminDb.collection(JOBS).where('status', 'in', ['queued', 'processing']).count().get(),
+  ]);
+
+  return {
+    totalProducts: productsSnap.data().count,
+    activeListings: listingsSnap.data().count,
+    totalMarketplaces: 4,
+    pendingJobs: jobsSnap.data().count,
+  };
 }

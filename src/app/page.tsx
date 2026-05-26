@@ -5,8 +5,8 @@ import HeroSlider from '@/components/HeroSlider';
 
 export const dynamic = 'force-dynamic';
 
-export default function HomePage() {
-  const products = getAllProducts('active').slice(0, 8);
+export default async function HomePage() {
+  const products = (await getAllProducts('active')).slice(0, 8);
 
   return (
     <div>

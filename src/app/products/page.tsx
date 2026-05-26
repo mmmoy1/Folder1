@@ -4,8 +4,8 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
-export default function ProductsPage() {
-  const products = getAllProducts('active');
+export default async function ProductsPage() {
+  const products = await getAllProducts('active');
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">

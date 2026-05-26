@@ -4,7 +4,7 @@ import { runPipeline } from '@/lib/marketplace';
 import { MarketplaceType } from '@/lib/types';
 
 export async function GET() {
-  const jobs = db.getAllPipelineJobs();
+  const jobs = await db.getAllPipelineJobs();
   return NextResponse.json(jobs);
 }
 
@@ -23,13 +23,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const product = db.getProductById(productId);
+    const product = await db.getProductById(productId);
     if (!product) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
     if (product.status !== 'active') {
-      db.updateProduct(productId, { status: 'active' });
+      await db.updateProduct(productId, { status: 'active' });
     }
 
     const job = await runPipeline(product, marketplaces);

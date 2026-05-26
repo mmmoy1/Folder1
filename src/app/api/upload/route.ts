@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
 import { v4 as uuid } from 'uuid';
+import { adminStorage } from '@/lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,24 +11,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No files uploaded' }, { status: 400 });
     }
 
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    await mkdir(uploadDir, { recursive: true });
-
+    const bucket = adminStorage.bucket();
     const urls: string[] = [];
 
     for (const file of files) {
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
       const ext = file.name.split('.').pop() || 'jpg';
-      const filename = `${uuid()}.${ext}`;
-      const filepath = path.join(uploadDir, filename);
+      const filename = `products/${uuid()}.${ext}`;
 
-      await writeFile(filepath, buffer);
-      urls.push(`/uploads/${filename}`);
+      const fileRef = bucket.file(filename);
+      await fileRef.save(buffer, {
+        metadata: {
+          contentType: file.type || 'image/jpeg',
+        },
+      });
+
+      await fileRef.makePublic();
+      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+      urls.push(publicUrl);
     }
 
     return NextResponse.json({ urls });
   } catch (error: any) {
+    console.error('Upload error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

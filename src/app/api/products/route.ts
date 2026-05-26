@@ -4,14 +4,14 @@ import * as db from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   const status = request.nextUrl.searchParams.get('status') || undefined;
-  const products = db.getAllProducts(status);
+  const products = await db.getAllProducts(status);
   return NextResponse.json(products);
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const product = db.createProduct({
+    const product = await db.createProduct({
       id: uuid(),
       name: body.name,
       description: body.description || '',
