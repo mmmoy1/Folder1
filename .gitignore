@@ -1,0 +1,17 @@
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+.env
+.env.local
+.env.production
+data/
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Firebase
+.firebase/
+service-account-key.json
+*-debug.log
