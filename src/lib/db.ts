@@ -19,6 +19,7 @@ function docToProduct(doc: FirebaseFirestore.DocumentSnapshot): Product {
     images: d.images || [],
     inventory: d.inventory || 0,
     status: d.status || 'draft',
+    escSpecs: d.escSpecs || undefined,
     createdAt: d.createdAt?.toDate?.()?.toISOString?.() || d.createdAt || '',
     updatedAt: d.updatedAt?.toDate?.()?.toISOString?.() || d.updatedAt || '',
   };
@@ -83,13 +84,17 @@ export async function createProduct(product: Omit<Product, 'createdAt' | 'update
     images: product.images,
     inventory: product.inventory,
     status: product.status,
+    escSpecs: product.escSpecs || null,
     createdAt: now,
     updatedAt: now,
   });
   return (await getProductById(product.id))!;
 }
 
-export async function updateProduct(id: string, updates: Partial<Product>): Promise<Product | null> {
+export async function updateProduct(
+  id: string,
+  updates: Partial<Omit<Product, 'escSpecs'>> & { escSpecs?: Product['escSpecs'] | null }
+): Promise<Product | null> {
   const existing = await getProductById(id);
   if (!existing) return null;
 
@@ -104,6 +109,7 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
   if (updates.images !== undefined) data.images = updates.images;
   if (updates.inventory !== undefined) data.inventory = updates.inventory;
   if (updates.status !== undefined) data.status = updates.status;
+  if (updates.escSpecs !== undefined) data.escSpecs = updates.escSpecs || null;
 
   await adminDb.collection(PRODUCTS).doc(id).update(data);
   return getProductById(id);

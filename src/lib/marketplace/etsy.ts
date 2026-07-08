@@ -1,4 +1,5 @@
 import { Product, PipelineResult } from '../types';
+import { enrichDescriptionWithEscSpecs } from '../esc';
 
 export async function publishToEtsy(product: Product): Promise<PipelineResult> {
   await new Promise(resolve => setTimeout(resolve, 600 + Math.random() * 1000));
@@ -23,13 +24,23 @@ export async function publishToEtsy(product: Product): Promise<PipelineResult> {
 }
 
 export function formatForEtsy(product: Product) {
+  const escTags = product.escSpecs
+    ? [
+        product.escSpecs.formFactor,
+        `${product.escSpecs.channels}ch`,
+        product.escSpecs.controlType,
+        product.escSpecs.voltageRange,
+        'esc',
+        'uav',
+      ]
+    : [];
   return {
     title: product.name.slice(0, 140),
-    description: product.description,
+    description: enrichDescriptionWithEscSpecs(product),
     price: product.price,
     quantity: product.inventory,
     sku: [product.sku],
-    tags: product.tags.slice(0, 13),
+    tags: Array.from(new Set([...product.tags, ...escTags])).slice(0, 13),
     images: product.images,
     whoMadeIt: 'someone_else',
     whenMadeIt: 'made_to_order',

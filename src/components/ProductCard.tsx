@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Product } from '@/lib/types';
+import { formatEscChannels, isMultiEsc } from '@/lib/esc';
 import { useCart } from './CartProvider';
 
 export default function ProductCard({ product }: { product: Product }) {
@@ -11,6 +12,7 @@ export default function ProductCard({ product }: { product: Product }) {
   const discountPct = hasDiscount
     ? Math.round((1 - product.price / product.compareAtPrice!) * 100)
     : 0;
+  const multi = isMultiEsc(product);
 
   return (
     <div className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:border-gray-200 transition-all duration-300">
@@ -29,6 +31,11 @@ export default function ProductCard({ product }: { product: Product }) {
               -{discountPct}%
             </span>
           )}
+          {multi && (
+            <span className="absolute bottom-3 left-3 bg-slate-900/85 text-white text-xs font-semibold px-2.5 py-1 rounded-lg">
+              {formatEscChannels(product.escSpecs!)}
+            </span>
+          )}
           {product.inventory <= 3 && product.inventory > 0 && (
             <span className="absolute top-3 right-3 bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded-full">
               Only {product.inventory} left
@@ -43,6 +50,11 @@ export default function ProductCard({ product }: { product: Product }) {
             {product.name}
           </h3>
         </Link>
+        {product.escSpecs && (
+          <p className="text-xs text-gray-500 mb-2">
+            {product.escSpecs.continuousCurrentA}A · {product.escSpecs.voltageRange} · {product.escSpecs.controlType}
+          </p>
+        )}
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
             <span className="text-lg font-bold text-gray-900">${product.price.toFixed(2)}</span>

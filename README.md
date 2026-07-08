@@ -14,12 +14,14 @@ A full-stack e-commerce application with a multi-marketplace publishing pipeline
 - Product detail pages with image galleries
 - Shopping cart with quantity management
 - Checkout flow with shipping and payment forms
+- **Multi-ESC support** — structured `escSpecs` for single and multi-channel ESCs (2/4/6/8-in-1), storefront filter at `/products?multiEsc=1`, and marketplace listing enrichment
 
 ### Admin Dashboard
 - Dashboard with key metrics
 - Full product management (create, edit, delete)
 - Image upload to Firebase Storage
 - Product status management (draft, active, archived)
+- ESC / multi-ESC spec editor when creating propulsion products
 
 ### Multi-Marketplace Pipeline
 - **eBay** — Publish listings with automatic category mapping

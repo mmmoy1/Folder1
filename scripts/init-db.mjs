@@ -29,86 +29,157 @@ if (!credential && !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
 const app = initializeApp(appConfig);
 const db = getFirestore(app);
 
+/**
+ * UAV propulsion catalog focused on multi-ESC (4-in-1) boards.
+ * The former single-channel ALPHA 60A 24S FOC ESC listing is replaced by
+ * multi-channel ESC SKUs suitable for multirotor builds.
+ */
 const sampleProducts = [
   {
-    name: 'Wireless Noise-Canceling Headphones',
-    description: 'Premium over-ear wireless headphones with active noise cancellation, 30-hour battery life, and crystal-clear audio. Features Bluetooth 5.3, comfortable memory foam earpads, and foldable design for portability.',
-    price: 149.99,
-    compareAtPrice: 199.99,
-    sku: 'WH-NC1000',
-    category: 'Electronics',
-    tags: ['wireless', 'headphones', 'noise-canceling', 'bluetooth', 'audio'],
-    inventory: 45,
+    name: 'T-MOTOR Cine 80A 8S 4-in-1 ESC',
+    description:
+      'Compact 4-in-1 ESC for FPV cinelifters. STM32G071 MCU, AM32 firmware, dual parallel MOSFET groups for lower heat, dual TVS protection, and anti-loose connectors. Replaces discrete single ESCs with one multi-ESC board on a 30.5×30.5mm stack.',
+    price: 306.90,
+    compareAtPrice: 339.90,
+    sku: 'TM-C80A-4IN1',
+    category: 'UAV Propulsion',
+    tags: ['t-motor', '4-in-1', 'multi-esc', 'am32', 'cine', 'fpv', '80a', '8s'],
+    inventory: 28,
+    escSpecs: {
+      channels: 4,
+      formFactor: '4-in-1',
+      continuousCurrentA: 80,
+      peakCurrentA: 90,
+      voltageRange: '4-8S',
+      controlType: 'AM32',
+      bec: false,
+      mountingPattern: '30.5x30.5mm',
+      firmware: 'AM32',
+    },
   },
   {
-    name: 'Minimalist Leather Watch',
-    description: 'Elegant minimalist watch with genuine Italian leather strap and Japanese quartz movement. Sapphire crystal glass, water-resistant to 50m, and ultra-slim 7mm profile.',
-    price: 89.99,
-    compareAtPrice: 120.00,
-    sku: 'MW-LTH200',
-    category: 'Jewelry',
-    tags: ['watch', 'leather', 'minimalist', 'accessories'],
-    inventory: 30,
+    name: 'T-MOTOR F55A PRO III 55A 3-8S 4-in-1 ESC',
+    description:
+      'High-performance 4-in-1 ESC for 5-inch freestyle and racing multirotors. BLHeli_32 / AM32-class drive, 55A continuous per channel, 3–8S input. One multi-ESC board replaces four discrete ESCs for cleaner wiring and stack mounting.',
+    price: 89.90,
+    compareAtPrice: 109.90,
+    sku: 'TM-F55A-PRO3-4IN1',
+    category: 'UAV Propulsion',
+    tags: ['t-motor', '4-in-1', 'multi-esc', 'blheli32', 'racing', '55a', 'fpv'],
+    inventory: 64,
+    escSpecs: {
+      channels: 4,
+      formFactor: '4-in-1',
+      continuousCurrentA: 55,
+      peakCurrentA: 70,
+      voltageRange: '3-8S',
+      controlType: 'BLHeli_32',
+      bec: false,
+      mountingPattern: '30.5x30.5mm',
+      firmware: 'BLHeli_32',
+    },
   },
   {
-    name: 'Organic Cotton T-Shirt',
-    description: 'Super soft organic cotton t-shirt made from 100% GOTS-certified organic cotton. Pre-shrunk, breathable, and ethically manufactured. Available in multiple colors.',
-    price: 29.99,
+    name: 'T-MOTOR P60A V2 60A 3-6S 4-in-1 ESC',
+    description:
+      '60A continuous 4-in-1 ESC for 6–7 inch long-range platforms. Multi-ESC layout with 3–6S support — a direct multi-channel alternative when stepping away from a single ALPHA-class discrete ESC on smaller airframes.',
+    price: 79.90,
+    compareAtPrice: 99.90,
+    sku: 'TM-P60A-V2-4IN1',
+    category: 'UAV Propulsion',
+    tags: ['t-motor', '4-in-1', 'multi-esc', 'long-range', '60a', '6s'],
+    inventory: 42,
+    escSpecs: {
+      channels: 4,
+      formFactor: '4-in-1',
+      continuousCurrentA: 60,
+      peakCurrentA: 75,
+      voltageRange: '3-6S',
+      controlType: 'BLHeli_32',
+      bec: false,
+      mountingPattern: '30.5x30.5mm',
+      firmware: 'BLHeli_32',
+    },
+  },
+  {
+    name: 'T-MOTOR Velox V50A SE 4-in-1 ESC',
+    description:
+      'Lightweight V50A SE 4-in-1 ESC for cine and freestyle stacks. Multi-ESC board with secure mounting and clean signal routing for F7 flight-controller stacks.',
+    price: 69.90,
     compareAtPrice: null,
-    sku: 'OC-TEE100',
-    category: 'Clothing',
-    tags: ['organic', 'cotton', 't-shirt', 'sustainable', 'clothing'],
+    sku: 'TM-V50A-SE-4IN1',
+    category: 'UAV Propulsion',
+    tags: ['t-motor', '4-in-1', 'multi-esc', 'velox', '50a', 'cine'],
+    inventory: 51,
+    escSpecs: {
+      channels: 4,
+      formFactor: '4-in-1',
+      continuousCurrentA: 50,
+      peakCurrentA: 60,
+      voltageRange: '3-6S',
+      controlType: 'BLHeli_32',
+      bec: false,
+      mountingPattern: '30.5x30.5mm',
+      firmware: 'BLHeli_32',
+    },
+  },
+  {
+    name: 'T-MOTOR ALPHA 60A 12S FOC ESC (Single)',
+    description:
+      'Industrial FOC single-channel ESC for heavy-lift multirotors (6–12S). Low noise sine-wave drive. Prefer multi-ESC (4-in-1) SKUs for compact FPV builds; keep this discrete unit for HV industrial airframes that need one ESC per motor.',
+    price: 189.90,
+    compareAtPrice: 219.90,
+    sku: 'TM-ALPHA-60A-12S',
+    category: 'UAV Propulsion',
+    tags: ['t-motor', 'alpha', 'foc', 'single-esc', '12s', '60a', 'industrial'],
+    inventory: 36,
+    escSpecs: {
+      channels: 1,
+      formFactor: 'single',
+      continuousCurrentA: 60,
+      peakCurrentA: 80,
+      voltageRange: '6-12S',
+      controlType: 'FOC',
+      bec: false,
+      signalFrequency: '500Hz',
+      firmware: 'ALPHA FOC',
+    },
+  },
+  {
+    name: 'T-MOTOR 4-in-1 ESC Wiring Harness Kit',
+    description:
+      'Motor and signal harness kit for converting discrete single-ESC builds to a multi-ESC (4-in-1) stack. Includes XT60 input lead, capacitor, and 4× motor bullet adapters.',
+    price: 24.90,
+    compareAtPrice: null,
+    sku: 'TM-4IN1-HARNESS',
+    category: 'UAV Propulsion',
+    tags: ['t-motor', '4-in-1', 'multi-esc', 'harness', 'accessories'],
     inventory: 120,
+    escSpecs: null,
   },
   {
-    name: 'Smart Home Security Camera',
-    description: '2K HDR indoor/outdoor security camera with night vision, two-way audio, and motion detection. Works with Alexa and Google Home. Includes free cloud storage.',
-    price: 69.99,
-    compareAtPrice: 99.99,
-    sku: 'SC-2KHDR',
-    category: 'Electronics',
-    tags: ['smart home', 'security', 'camera', 'surveillance', '2k'],
-    inventory: 55,
-  },
-  {
-    name: 'Handmade Ceramic Mug Set',
-    description: 'Set of 4 handcrafted ceramic mugs with unique glazed finishes. Microwave and dishwasher safe. Each mug holds 12oz and features a comfortable ergonomic handle.',
-    price: 44.99,
-    compareAtPrice: null,
-    sku: 'HM-MUG4',
-    category: 'Home',
-    tags: ['ceramic', 'mug', 'handmade', 'kitchen', 'home decor'],
-    inventory: 25,
-  },
-  {
-    name: 'Yoga Mat Pro',
-    description: 'Extra-thick 6mm non-slip yoga mat made from eco-friendly TPE material. Excellent cushioning for joints, lightweight and portable. Comes with carrying strap.',
-    price: 39.99,
-    compareAtPrice: null,
-    sku: 'YM-PRO6',
-    category: 'Sports',
-    tags: ['yoga', 'fitness', 'mat', 'exercise', 'eco-friendly'],
-    inventory: 80,
-  },
-  {
-    name: 'Portable Bluetooth Speaker',
-    description: 'Waterproof IPX7 portable speaker with 360-degree sound, 24-hour battery life, and built-in microphone. Pairs two speakers for stereo sound.',
-    price: 59.99,
-    compareAtPrice: 79.99,
-    sku: 'BS-PORT360',
-    category: 'Electronics',
-    tags: ['speaker', 'bluetooth', 'waterproof', 'portable', 'audio'],
-    inventory: 65,
-  },
-  {
-    name: 'Artisan Scented Candle Collection',
-    description: 'Collection of 3 hand-poured soy wax candles in amber glass jars. Scents include Lavender Fields, Vanilla Bean, and Cedar Wood. Each candle burns for 50+ hours.',
-    price: 34.99,
-    compareAtPrice: null,
-    sku: 'AC-SOY3',
-    category: 'Home',
-    tags: ['candle', 'soy wax', 'home fragrance', 'artisan', 'gift'],
+    name: 'MN501-S KV240 Propulsion Motor',
+    description:
+      'Matched T-MOTOR propulsion motor for multirotor builds using multi-ESC or discrete FOC ESCs. Smooth FOC-friendly windings for mapping and inspection platforms.',
+    price: 129.90,
+    compareAtPrice: 149.90,
+    sku: 'TM-MN501S-KV240',
+    category: 'UAV Propulsion',
+    tags: ['t-motor', 'motor', 'mn501', 'propulsion', 'uav'],
     inventory: 40,
+    escSpecs: null,
+  },
+  {
+    name: 'Carbon Prop 18×6.5 Pair',
+    description:
+      'Balanced carbon fiber propeller pair for heavy-lift and long-endurance multirotors. Pair with multi-ESC or ALPHA FOC propulsion stacks.',
+    price: 34.90,
+    compareAtPrice: null,
+    sku: 'TM-PROP-1865',
+    category: 'UAV Propulsion',
+    tags: ['propeller', 'carbon', 'uav', 't-motor'],
+    inventory: 90,
+    escSpecs: null,
   },
 ];
 
@@ -118,7 +189,7 @@ async function seed() {
 
   for (const p of sampleProducts) {
     const id = randomUUID();
-    const imgUrl = `https://placehold.co/600x600/f0f7ff/0074c5?text=${encodeURIComponent(p.name.split(' ').slice(0, 2).join('\\n'))}`;
+    const imgUrl = `https://placehold.co/600x600/0b1f33/7dd3fc?text=${encodeURIComponent(p.name.split(' ').slice(0, 3).join('\\n'))}`;
 
     const ref = db.collection('products').doc(id);
     batch.set(ref, {
@@ -132,13 +203,15 @@ async function seed() {
       images: [imgUrl],
       inventory: p.inventory,
       status: 'active',
+      escSpecs: p.escSpecs,
       createdAt: now,
       updatedAt: now,
     });
   }
 
   await batch.commit();
-  console.log(`Seeded ${sampleProducts.length} sample products to Firestore`);
+  const multiCount = sampleProducts.filter(p => p.escSpecs && p.escSpecs.channels > 1).length;
+  console.log(`Seeded ${sampleProducts.length} products (${multiCount} multi-ESC) to Firestore`);
 }
 
 seed()

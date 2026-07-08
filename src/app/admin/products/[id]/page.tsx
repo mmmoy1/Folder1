@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Product, MarketplaceType, MarketplaceListing, PipelineJob } from '@/lib/types';
+import { formatEscChannels, isMultiEsc } from '@/lib/esc';
 
 const MARKETPLACES: { type: MarketplaceType; name: string; color: string }[] = [
   { type: 'ebay', name: 'eBay', color: '#E53238' },
@@ -142,6 +143,18 @@ export default function AdminProductDetailPage() {
                   <span className="text-sm text-gray-500">Inventory</span>
                   <p className="font-medium text-gray-900">{product.inventory} units</p>
                 </div>
+                {product.escSpecs && (
+                  <div>
+                    <span className="text-sm text-gray-500">ESC</span>
+                    <p className="font-medium text-gray-900">
+                      {formatEscChannels(product.escSpecs)}
+                      {isMultiEsc(product) ? ' Multi ESC' : ''}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {product.escSpecs.continuousCurrentA}A · {product.escSpecs.voltageRange} · {product.escSpecs.controlType}
+                    </p>
+                  </div>
+                )}
                 {product.tags.length > 0 && (
                   <div>
                     <span className="text-sm text-gray-500">Tags</span>
@@ -158,6 +171,29 @@ export default function AdminProductDetailPage() {
               <div className="mt-6 pt-6 border-t border-gray-100">
                 <span className="text-sm text-gray-500">Description</span>
                 <p className="text-gray-700 mt-1">{product.description}</p>
+              </div>
+            )}
+            {product.escSpecs && (
+              <div className="mt-6 pt-6 border-t border-gray-100">
+                <span className="text-sm text-gray-500">ESC Specifications</span>
+                <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="rounded-xl bg-slate-50 px-3 py-2">
+                    <p className="text-xs text-gray-500">Channels</p>
+                    <p className="font-medium text-gray-900">{product.escSpecs.channels}</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 px-3 py-2">
+                    <p className="text-xs text-gray-500">Form factor</p>
+                    <p className="font-medium text-gray-900">{product.escSpecs.formFactor}</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 px-3 py-2">
+                    <p className="text-xs text-gray-500">Current</p>
+                    <p className="font-medium text-gray-900">{product.escSpecs.continuousCurrentA}A</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 px-3 py-2">
+                    <p className="text-xs text-gray-500">Voltage</p>
+                    <p className="font-medium text-gray-900">{product.escSpecs.voltageRange}</p>
+                  </div>
+                </div>
               </div>
             )}
           </div>

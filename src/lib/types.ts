@@ -1,3 +1,29 @@
+export type EscFormFactor = 'single' | '2-in-1' | '4-in-1' | '6-in-1' | '8-in-1';
+export type EscControlType = 'FOC' | 'BLHeli_32' | 'AM32' | 'BLDC' | 'other';
+
+/** Optional propulsion / ESC technical specs for UAV products. */
+export interface EscSpecs {
+  /** Number of motor channels on the board (1 = discrete ESC, 4 = 4-in-1, etc.). */
+  channels: number;
+  /** Human-readable form factor, e.g. "4-in-1". */
+  formFactor: EscFormFactor;
+  /** Continuous current rating per channel, in amps. */
+  continuousCurrentA: number;
+  /** Peak / burst current per channel, in amps (optional). */
+  peakCurrentA?: number;
+  /** Supported LiPo cell count range, e.g. "4-8S". */
+  voltageRange: string;
+  controlType: EscControlType;
+  /** Whether a BEC is present. */
+  bec: boolean;
+  /** Throttle / signal refresh rate, e.g. "500Hz". */
+  signalFrequency?: string;
+  /** Mounting pattern, e.g. "30.5x30.5mm". */
+  mountingPattern?: string;
+  /** Firmware family when relevant. */
+  firmware?: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -10,6 +36,8 @@ export interface Product {
   images: string[];
   inventory: number;
   status: 'draft' | 'active' | 'archived';
+  /** Present when the product is an ESC / multi-ESC propulsion controller. */
+  escSpecs?: EscSpecs;
   createdAt: string;
   updatedAt: string;
 }

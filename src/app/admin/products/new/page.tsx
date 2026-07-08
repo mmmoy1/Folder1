@@ -3,7 +3,29 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
-const CATEGORIES = ['Electronics', 'Clothing', 'Home', 'Sports', 'Toys', 'Books', 'Jewelry', 'Art', 'Automotive', 'Other'];
+const CATEGORIES = [
+  'UAV Propulsion',
+  'Electronics',
+  'Clothing',
+  'Home',
+  'Sports',
+  'Toys',
+  'Books',
+  'Jewelry',
+  'Art',
+  'Automotive',
+  'Other',
+];
+
+const FORM_FACTORS = [
+  { value: 'single', channels: 1, label: 'Single ESC' },
+  { value: '2-in-1', channels: 2, label: '2-in-1 Multi ESC' },
+  { value: '4-in-1', channels: 4, label: '4-in-1 Multi ESC' },
+  { value: '6-in-1', channels: 6, label: '6-in-1 Multi ESC' },
+  { value: '8-in-1', channels: 8, label: '8-in-1 Multi ESC' },
+] as const;
+
+const CONTROL_TYPES = ['FOC', 'BLHeli_32', 'AM32', 'BLDC', 'other'] as const;
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -11,16 +33,28 @@ export default function NewProductPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [images, setImages] = useState<string[]>([]);
+  const [enableEsc, setEnableEsc] = useState(true);
   const [form, setForm] = useState({
     name: '',
     description: '',
     price: '',
     compareAtPrice: '',
     sku: '',
-    category: '',
+    category: 'UAV Propulsion',
     tags: '',
     inventory: '0',
     status: 'draft' as 'draft' | 'active',
+  });
+  const [esc, setEsc] = useState({
+    formFactor: '4-in-1' as (typeof FORM_FACTORS)[number]['value'],
+    continuousCurrentA: '60',
+    peakCurrentA: '',
+    voltageRange: '3-6S',
+    controlType: 'BLHeli_32' as (typeof CONTROL_TYPES)[number],
+    bec: false,
+    signalFrequency: '',
+    mountingPattern: '30.5x30.5mm',
+    firmware: '',
   });
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,6 +85,22 @@ export default function NewProductPage() {
     e.preventDefault();
     setSaving(true);
 
+    const formFactorMeta = FORM_FACTORS.find(f => f.value === esc.formFactor)!;
+    const escSpecs = enableEsc
+      ? {
+          channels: formFactorMeta.channels,
+          formFactor: esc.formFactor,
+          continuousCurrentA: parseFloat(esc.continuousCurrentA),
+          peakCurrentA: esc.peakCurrentA ? parseFloat(esc.peakCurrentA) : undefined,
+          voltageRange: esc.voltageRange,
+          controlType: esc.controlType,
+          bec: esc.bec,
+          signalFrequency: esc.signalFrequency || undefined,
+          mountingPattern: esc.mountingPattern || undefined,
+          firmware: esc.firmware || undefined,
+        }
+      : undefined;
+
     try {
       const res = await fetch('/api/products', {
         method: 'POST',
@@ -59,6 +109,7 @@ export default function NewProductPage() {
           ...form,
           tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
           images,
+          escSpecs,
         }),
       });
 
@@ -82,13 +133,12 @@ export default function NewProductPage() {
         </button>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Add New Product</h1>
-          <p className="text-gray-600 mt-1">Fill in the details to create a new product listing</p>
+          <p className="text-gray-600 mt-1">Create a listing — multi-ESC (4-in-1) specs supported</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="max-w-4xl">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main info */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-2xl border border-gray-100 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Product Information</h2>
@@ -100,7 +150,7 @@ export default function NewProductPage() {
                     required
                     value={form.name}
                     onChange={e => setForm({ ...form, name: e.target.value })}
-                    placeholder="e.g., Wireless Bluetooth Headphones"
+                    placeholder="e.g., T-MOTOR Cine 80A 8S 4-in-1 ESC"
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
                   />
                 </div>
@@ -117,7 +167,124 @@ export default function NewProductPage() {
               </div>
             </div>
 
-            {/* Images */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">ESC / Multi-ESC Specs</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">Replace discrete single ESCs with multi-channel boards</p>
+                </div>
+                <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={enableEsc}
+                    onChange={e => setEnableEsc(e.target.checked)}
+                    className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                  />
+                  Enable
+                </label>
+              </div>
+
+              {enableEsc && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Form factor</label>
+                    <select
+                      value={esc.formFactor}
+                      onChange={e => setEsc({ ...esc, formFactor: e.target.value as typeof esc.formFactor })}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
+                    >
+                      {FORM_FACTORS.map(f => (
+                        <option key={f.value} value={f.value}>{f.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Control type</label>
+                    <select
+                      value={esc.controlType}
+                      onChange={e => setEsc({ ...esc, controlType: e.target.value as typeof esc.controlType })}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
+                    >
+                      {CONTROL_TYPES.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Continuous current (A) *</label>
+                    <input
+                      type="number"
+                      min="1"
+                      required={enableEsc}
+                      value={esc.continuousCurrentA}
+                      onChange={e => setEsc({ ...esc, continuousCurrentA: e.target.value })}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Peak current (A)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={esc.peakCurrentA}
+                      onChange={e => setEsc({ ...esc, peakCurrentA: e.target.value })}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Voltage range *</label>
+                    <input
+                      type="text"
+                      required={enableEsc}
+                      value={esc.voltageRange}
+                      onChange={e => setEsc({ ...esc, voltageRange: e.target.value })}
+                      placeholder="e.g., 4-8S or 6-24S"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Mounting pattern</label>
+                    <input
+                      type="text"
+                      value={esc.mountingPattern}
+                      onChange={e => setEsc({ ...esc, mountingPattern: e.target.value })}
+                      placeholder="30.5x30.5mm"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Signal frequency</label>
+                    <input
+                      type="text"
+                      value={esc.signalFrequency}
+                      onChange={e => setEsc({ ...esc, signalFrequency: e.target.value })}
+                      placeholder="500Hz"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Firmware</label>
+                    <input
+                      type="text"
+                      value={esc.firmware}
+                      onChange={e => setEsc({ ...esc, firmware: e.target.value })}
+                      placeholder="AM32 / BLHeli_32 / ALPHA FOC"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+                  <label className="inline-flex items-center gap-2 text-sm text-gray-700 sm:col-span-2">
+                    <input
+                      type="checkbox"
+                      checked={esc.bec}
+                      onChange={e => setEsc({ ...esc, bec: e.target.checked })}
+                      className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                    />
+                    Includes BEC
+                  </label>
+                </div>
+              )}
+            </div>
+
             <div className="bg-white rounded-2xl border border-gray-100 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Product Images</h2>
               <div className="space-y-4">
@@ -165,7 +332,6 @@ export default function NewProductPage() {
               </div>
             </div>
 
-            {/* Pricing */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Pricing & Inventory</h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -214,7 +380,6 @@ export default function NewProductPage() {
             </div>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
             <div className="bg-white rounded-2xl border border-gray-100 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Organization</h2>
@@ -257,7 +422,7 @@ export default function NewProductPage() {
                     type="text"
                     value={form.tags}
                     onChange={e => setForm({ ...form, tags: e.target.value })}
-                    placeholder="wireless, bluetooth, audio"
+                    placeholder="4-in-1, multi-esc, t-motor"
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all text-sm"
                   />
                   <p className="text-xs text-gray-400 mt-1">Comma-separated</p>

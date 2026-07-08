@@ -1,4 +1,5 @@
 import { Product, PipelineResult } from '../types';
+import { enrichDescriptionWithEscSpecs } from '../esc';
 
 export async function publishToEbay(product: Product): Promise<PipelineResult> {
   // Simulate eBay API call with realistic delay
@@ -26,7 +27,7 @@ export async function publishToEbay(product: Product): Promise<PipelineResult> {
 export function formatForEbay(product: Product) {
   return {
     title: product.name.slice(0, 80),
-    description: product.description,
+    description: enrichDescriptionWithEscSpecs(product),
     price: { value: product.price.toFixed(2), currency: 'USD' },
     categoryId: getCategoryMapping(product.category),
     condition: 'NEW',
@@ -35,6 +36,16 @@ export function formatForEbay(product: Product) {
     sku: product.sku,
     listingType: 'FixedPrice',
     shippingOptions: [{ type: 'FLAT_RATE', cost: '0.00', additionalCost: '0.00' }],
+    itemSpecifics: product.escSpecs
+      ? {
+          Brand: 'T-MOTOR',
+          Type: product.escSpecs.formFactor === 'single' ? 'ESC' : 'Multi ESC',
+          Channels: String(product.escSpecs.channels),
+          Voltage: product.escSpecs.voltageRange,
+          'Continuous Current': `${product.escSpecs.continuousCurrentA}A`,
+          'Control Type': product.escSpecs.controlType,
+        }
+      : undefined,
   };
 }
 
@@ -48,6 +59,7 @@ function getCategoryMapping(category: string): string {
     'books': '267',
     'jewelry': '281',
     'automotive': '6000',
+    'uav propulsion': '182182',
   };
   return map[category.toLowerCase()] || '99';
 }

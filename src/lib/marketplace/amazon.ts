@@ -1,4 +1,5 @@
 import { Product, PipelineResult } from '../types';
+import { enrichDescriptionWithEscSpecs } from '../esc';
 
 export async function publishToAmazon(product: Product): Promise<PipelineResult> {
   await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1500));
@@ -23,11 +24,12 @@ export async function publishToAmazon(product: Product): Promise<PipelineResult>
 }
 
 export function formatForAmazon(product: Product) {
+  const description = enrichDescriptionWithEscSpecs(product);
   return {
     itemType: 'STANDARD',
     title: product.name,
-    bulletPoints: product.description.split('. ').slice(0, 5),
-    description: product.description,
+    bulletPoints: description.split(/[.\n]/).map(s => s.trim()).filter(Boolean).slice(0, 5),
+    description,
     price: { amount: product.price, currencyCode: 'USD' },
     quantity: product.inventory,
     sku: product.sku,
@@ -38,5 +40,14 @@ export function formatForAmazon(product: Product) {
     productCategory: product.category,
     condition: { value: 'New' },
     fulfillmentChannel: 'MFN',
+    attributes: product.escSpecs
+      ? {
+          esc_channels: product.escSpecs.channels,
+          esc_form_factor: product.escSpecs.formFactor,
+          continuous_current_amps: product.escSpecs.continuousCurrentA,
+          voltage_range: product.escSpecs.voltageRange,
+          control_type: product.escSpecs.controlType,
+        }
+      : undefined,
   };
 }

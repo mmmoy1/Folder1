@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Product } from '@/lib/types';
+import { formatEscChannels, isMultiEsc } from '@/lib/esc';
 import { useCart } from '@/components/CartProvider';
 
 export default function ProductDetailPage() {
@@ -98,8 +99,14 @@ export default function ProductDetailPage() {
 
         {/* Details */}
         <div>
-          <div className="mb-2">
+          <div className="mb-2 flex items-center gap-2 flex-wrap">
             <span className="text-sm text-brand-600 font-medium uppercase tracking-wider">{product.category}</span>
+            {product.escSpecs && (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-900 text-white">
+                {formatEscChannels(product.escSpecs)}
+                {isMultiEsc(product) ? ' Multi ESC' : ''}
+              </span>
+            )}
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-4">{product.name}</h1>
 
@@ -116,6 +123,52 @@ export default function ProductDetailPage() {
           </div>
 
           <p className="text-gray-600 mb-8 leading-relaxed">{product.description}</p>
+
+          {product.escSpecs && (
+            <div className="mb-8 grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="rounded-xl bg-slate-50 px-3 py-3">
+                <p className="text-xs text-gray-500">Channels</p>
+                <p className="font-semibold text-gray-900">{product.escSpecs.channels}</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 px-3 py-3">
+                <p className="text-xs text-gray-500">Current</p>
+                <p className="font-semibold text-gray-900">
+                  {product.escSpecs.continuousCurrentA}A
+                  {product.escSpecs.peakCurrentA ? ` / ${product.escSpecs.peakCurrentA}A pk` : ''}
+                </p>
+              </div>
+              <div className="rounded-xl bg-slate-50 px-3 py-3">
+                <p className="text-xs text-gray-500">Voltage</p>
+                <p className="font-semibold text-gray-900">{product.escSpecs.voltageRange}</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 px-3 py-3">
+                <p className="text-xs text-gray-500">Control</p>
+                <p className="font-semibold text-gray-900">{product.escSpecs.controlType}</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 px-3 py-3">
+                <p className="text-xs text-gray-500">BEC</p>
+                <p className="font-semibold text-gray-900">{product.escSpecs.bec ? 'Yes' : 'No'}</p>
+              </div>
+              {product.escSpecs.mountingPattern && (
+                <div className="rounded-xl bg-slate-50 px-3 py-3">
+                  <p className="text-xs text-gray-500">Mount</p>
+                  <p className="font-semibold text-gray-900">{product.escSpecs.mountingPattern}</p>
+                </div>
+              )}
+              {product.escSpecs.signalFrequency && (
+                <div className="rounded-xl bg-slate-50 px-3 py-3">
+                  <p className="text-xs text-gray-500">Signal</p>
+                  <p className="font-semibold text-gray-900">{product.escSpecs.signalFrequency}</p>
+                </div>
+              )}
+              {product.escSpecs.firmware && (
+                <div className="rounded-xl bg-slate-50 px-3 py-3">
+                  <p className="text-xs text-gray-500">Firmware</p>
+                  <p className="font-semibold text-gray-900">{product.escSpecs.firmware}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="space-y-4 mb-8">
             <div className="flex items-center gap-3 text-sm text-gray-600">

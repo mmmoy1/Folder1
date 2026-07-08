@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuid } from 'uuid';
 import * as db from '@/lib/db';
+import { parseEscSpecs } from '@/lib/esc';
 
 export async function GET(request: NextRequest) {
   const status = request.nextUrl.searchParams.get('status') || undefined;
-  const products = await db.getAllProducts(status);
+  const multiEsc = request.nextUrl.searchParams.get('multiEsc');
+  let products = await db.getAllProducts(status);
+  if (multiEsc === '1' || multiEsc === 'true') {
+    products = products.filter(p => p.escSpecs && p.escSpecs.channels > 1);
+  }
   return NextResponse.json(products);
 }
 
@@ -23,6 +28,7 @@ export async function POST(request: NextRequest) {
       images: body.images || [],
       inventory: parseInt(body.inventory) || 0,
       status: body.status || 'draft',
+      escSpecs: parseEscSpecs(body.escSpecs),
     });
     return NextResponse.json(product, { status: 201 });
   } catch (error: any) {
